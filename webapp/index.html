@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>UI5 Simple RichtextEditor</title>
+<style>
+	html, body, #content {
+		width: 100%;
+		height: 100%;
+		margin: 0;
+		padding: 0.5rem;
+		box-sizing: border-box;
+	}
+</style>
+<div id="content"></div>
+<script id='sap-ui-bootstrap'
+	src='https://openui5.hana.ondemand.com/resources/sap-ui-core.js'
+	data-sap-ui-theme='sap_bluecrystal'
+	data-sap-ui-libs='sap.ui.custom.rte'
+	data-sap-ui-compatVersion='edge'
+	data-sap-ui-resourceroots='{
+		"sap.ui.custom.rte": "./resources/sap/ui/custom/rte"
+	}'
+	data-sap-ui-preload='async'>
+</script>
+<script>
+	sap.ui.getCore().attachInit(function() {
+		sap.ui.require(
+			['sap/ui/custom/rte/SimpleEditor', 'sap/ui/layout/Splitter', 'sap/ui/core/HTML', 'sap/ui/model/json/JSONModel'],
+			function(SimpleEditor, Splitter, HTML, JSONModel)
+		{
+
+			var oModel = new JSONModel({
+				value: "<p>This is a test.</p>"
+			});
+
+
+
+			window.oRTE = new sap.ui.custom.rte.SimpleEditor({
+				width: "98%",
+				height: "99%",
+				value: "{/value}"
+			});
+			var oHtml = new HTML({
+				content: "{/value}"
+			});
+
+			var oLayout = new Splitter({
+				contentAreas: [
+					window.oRTE,
+					oHtml
+				]
+			});
+			oLayout.setModel(oModel);
+
+
+			oLayout.placeAt("content");
+		});
+	});
+</script>
