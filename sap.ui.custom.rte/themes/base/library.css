@@ -1,0 +1,48 @@
+.simpleRte {
+  box-sizing: border-box;
+}
+.simpleRteToolbar {
+  font-family: FontAwesome;
+  box-sizing: border-box;
+  line-height: 2rem;
+  overflow: hidden;
+  white-space: normal;
+  color: #333333;
+  background-color: #f2f2f2;
+  border: 1px solid #808080;
+  padding: 0 3px 3px 3px;
+  -ms-user-select: none;
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.simpleRteIcon {
+  display: inline-block;
+  width: 1.75rem;
+  height: 1.75rem;
+  font-size: 1.25rem;
+  vertical-align: middle;
+  text-align: center;
+  border: 1px solid #cdcdcd;
+  margin: 0 1px 0 0.1px;
+}
+.simpleRteIcon:hover {
+  outline: 1px solid #009df3;
+}
+.simpleRteSepatarorIcon {
+  width: 1px;
+  margin: 0 0.35rem 0 0.35rem;
+  background-color: grey;
+}
+.simpleRteSepatarorIcon:hover {
+  outline: 0px solid black;
+}
+.simpleRteActiveElement {
+  background-color: #007cc0;
+}
+.simpleRteContent {
+  height: calc(98%);
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #808080;
+}
