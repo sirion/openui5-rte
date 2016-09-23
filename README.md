@@ -1,6 +1,9 @@
 # openui5-rte
 A simple RichtextEditor library for openUI5
 
+## Demo:
+
+For a simple Demo of the initial version (POC), go to https://sirion.github.io/openui5-rte/
 
 
 ## Start:
