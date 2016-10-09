@@ -4,6 +4,25 @@ sap.ui.define(['sap/ui/core/Control', 'sap/ui/core/ResizeHandler'], function(Con
 jQuery.sap.includeStyleSheet(sap.ui.resource('sap.ui.custom.rte', "fonts/css/font-awesome.min.css"));
 
 
+var SelectionTools = {
+	/**
+	 * Either returns the (first) currently selected range or selects the whole node around the
+	 * current cursor position in case nothing is selected
+	 */
+	selectRange: function(oEditor) {
+		var oRange = oEditor.getCurrentRange();
+		var oSelection = oEditor.getSelection();
+		if (oRange.collapsed) {
+			var oNewRange = oRange.cloneRange();
+			oNewRange.selectNodeContents(oRange.endContainer);
+			oSelection.removeAllRanges();
+			oSelection.addRange(oNewRange);
+			oRange = oNewRange;
+		}
+		return oRange;
+	}
+};
+
 
 /**
  * Constructor for a new SimpleEditor.
@@ -89,8 +108,8 @@ var SimpleEditor = Control.extend("sap.ui.custom.rte.SimpleEditor", {
  * @param {map} mElement - A map containing all information about the added element
  * @param {string} mElement.name - The name/id of the command
  * @param {string} mElement.title - The description to show on hover
- * @param {string|function} mElement.icon - string or function returning an HTMLElement
- * @param {string|function} mElement.command - string to send to execCommand or function invoked when element is activated by user. The command function has its this-reference set to mElement and gets the Editor instance as first argument. This is the only place where the private method getContenDocument of the SimpleEditor may be used.
+ * @param {string|function} mElement.element - string or function returning an HTMLElement
+ * @param {string|function} mElement.command - string to send to execCommand or function invoked when element is activated by user. The function will only be called if element is not a function and thus created automatically. The command function has its this-reference set to mElement and gets the Editor interface as first argument.
  * @param {string|function} mElement.check - function checking whether the element should be marked as active, returns true or false based on the current selection (Automatically created for string execCommand commands) false to diasble checking
  *
  *
@@ -102,85 +121,242 @@ SimpleEditor.addToolbarElement = function(mElement) {
 };
 
 // }, {
-// 	icon: "|" // Separator without command
+// 	element: "|" // Separator without command
 // }, {
 // 	command: "cut",
-// 	icon: "f0c4"
+// 	element: "f0c4"
 // }, {
 // 	command: "copy",
-// 	icon: "f0c5"
+// 	element: "f0c5"
 // }, {
 // 	command: "paste",styleWithCSS
-// 	icon: "f0ea"
+// 	element: "f0ea"
 // }, {
 // 	command: "emoticon",
-// 	icon: "f118"
+// 	element: "f118"
 
 SimpleEditor.availableItems = {
 	bold: {
 		title: "Make selection bold",
 		command: "bold",
-		icon: "f032"
+		element: "f032"
 	},
 	italic: {
 		title: "Make selection italic",
 		command: "italic",
-		icon: "f033"
+		element: "f033"
 	},
 	underline: {
 		title: "Underline selection",
 		command: "underline",
-		icon: "f0cd"
+		element: "f0cd"
 	},
 	strikethrough: {
 		title: "Strike through selection",
 		command: "strikethrough",
-		icon: "f0cc"
+		element: "f0cc"
 	},
 	alignLeft: {
 		title: "Align left",
 		command: "justifyLeft",
-		icon: "f036"
+		element: "f036"
 	},
 	alignCenter: {
 		title: "Align center",
 		command: "justifyCenter",
-		icon: "f037"
+		element: "f037"
 	},
 	alignRight: {
 		title: "Align right",
 		command: "justifyRight",
-		icon: "f038"
+		element: "f038"
 	},
 	alignJustify: {
 		title: "Justify content",
 		command: "justifyFull",
-		icon: "f039"
+		element: "f039"
 	},
 	fontSize: {
-		title: "Choose the font size",
-		icon: function(oEditor) {
+		title: "Choose a font",
+		element: function(oEditor, SelectionTools) {
+			var fnFilterAvailableFonts = function(sFontname) {
+				// TODO: Check if the fonts are really available by checking width of "mmmnnl" string
+				var oSpan = document.createElement("span");
+				var oReferenceSpan = document.createElement("span");
+
+				oReferenceSpan.textContent = "mmmnnl";
+				oReferenceSpan.style.fontFamily = "InvalidFontFallbackToDefault";
+				oReferenceSpan.style.display = "block";
+				oReferenceSpan.style.position = "absolute";
+				oReferenceSpan.style.left = "-1000px";
+
+				oSpan.textContent = "mmmnnl";
+				oSpan.style.fontFamily = sFontname;
+				oSpan.style.display = "block";
+				oSpan.style.position = "absolute";
+				oSpan.style.left = "-1000px";
+
+				document.body.appendChild(oReferenceSpan);
+				document.body.appendChild(oSpan);
+
+				var fReferenceWidth = parseFloat(window.getComputedStyle(oReferenceSpan).width);
+				var fWidth = parseFloat(window.getComputedStyle(oSpan).width);
+
+				document.body.removeChild(oReferenceSpan);
+				document.body.removeChild(oSpan);
+
+				return fReferenceWidth != fWidth;
+			}
+
+			var aFonts = [
+				// TODO: This is a pretty bad and Windows centered list of fonts that might be available
+				// "default", -> Must be added after filter
+				// "serif", -> Must be added after filter
+				// "sans-serif", -> Must be added after filter
+				// "monospace", -> Must be added after filter
+				// "cursive",
+				// "fantasy",
+				"Andale Mono",
+				"Arial",
+				"Arial Black",
+				"Book Antiqua",
+				"Century Gothic",
+				"Comic Sans MS",
+				"Courier",
+				"Courier New",
+				"DejaVu Sans",
+				"DejaVu Serif",
+				"Droid Sans",
+				"Droid Serif",
+				"Geneva",
+				"Georgia",
+				"Helvetica",
+				"Impact",
+				"Charcoal",
+				"Liberation Mono",
+				"Liberation Sans",
+				"Liberation Serif",
+				"Lucida",
+				"Lucida Console",
+				"Lucida Grande",
+				"Lucida Sans",
+				"Monaco",
+				"MS Serif",
+				"Nimbus Mono",
+				"Nimbus Roman",
+				"Nimbus Sans",
+				"Tahoma",
+				"Times",
+				"Times New Roman",
+				"Trebuchet MS",
+				"New York",
+				"Palatino",
+				"Palatino Linotype",
+				"Ubuntu",
+				"Verdana",
+				"Webdings"
+			];
+
+			aFonts = aFonts.filter(fnFilterAvailableFonts);
+			aFonts = [
+				"default",
+				"serif",
+				"sans-serif",
+				"monospace",
+				"-"
+			].concat(aFonts);
+
 			var oSelect = document.createElement("select");
-			[1, 2, 3, 4, 5, 6, 7].map(function(iNum) {
+			aFonts.forEach(function(sFontname) {
 				var oOption = document.createElement("option");
-				oOption.value = oOption.textContent = iNum;
+				if (sFontname === "-") {
+					oOption.textContent = "-----";
+				} else {
+					oOption.value = oOption.textContent = sFontname;
+					oOption.style.fontFamily = sFontname;
+					if (sFontname === "default") {
+						oOption.setAttribute("selected", "selected");
+					}
+				}
 				oSelect.appendChild(oOption);
 			});
 			oSelect.classList.add("simpleRteIcon");
-			oSelect.style.width = "4rem";
+			oSelect.style.width = "8rem";
+			oSelect.style.fontSize = "0.8rem";
 			oSelect.addEventListener("input", function(e) {
-				oEditor.getContenDocument().execCommand("fontSize", false, e.target.value);
+				// TODO: Maybe set the current editor before so we do not need to provide it as argument
+
+				var oRange = oEditor.getCurrentRange();
+				oRange = SelectionTools.selectRange(oEditor);
+
+				// TODO: This can fail with an exception. I need to find out when this can happen in the RTE scenario
+				var oNewNode = document.createElement("span");
+				try {
+					oRange.surroundContents(oNewNode);
+				} catch(ex) {
+					oNewNode = oRange.commonAncestorContainer;
+				}
+
+				var fnSetFont = function(oNode, sFont) {
+					// TODO: Combine/Remove sub elements that only have font-family style
+					if (oNode.hasChildNodes()) {
+						// remove fontFamily for sub-nodes
+						for (var i = 0; i < oNode.children.length; ++i) {
+							fnSetFont(oNode.children[i], sFont);
+						}
+					}
+					oNode.style.fontFamily = sFont;
+				}
+
+
+				fnSetFont(oNewNode, e.target.value);
 			});
+
+			this._oElement = oSelect;
 			return oSelect;
 		},
-		command: function(oEditor) {
+		command: undefined, // Not called since element function exists
+		check: function(oEditor) {
+			function trimCustom(sString, aChars) {
+				var i, n;
+				for (i = 0; i < sString.length; i++) {
+					if (aChars.indexOf(sString[i]) === -1) {
+						break;
+					}
+				}
 
-			debugger;
-		},
-		check: function(oSelection) {
-			if (oSelection.rangeCount > 0) {
-				var debug = oSelection.getRangeAt(0);
-				debugger;
+				for (n = sString.length - 1; n >= 0; n--) {
+					if (aChars.indexOf(sString[n]) === -1) {
+						break;
+					}
+				}
+
+				return sString.substring(i, n + 1);
+			}
+
+			var oRange = oEditor.getCurrentRange();
+			if (oRange && oRange.endContainer) {
+				var oElement = oRange.endContainer;
+				if (oElement.nodeType === Node.TEXT_NODE) {
+					oElement = oElement.parentElement;
+				}
+
+				var sFont = trimCustom(oElement.style.fontFamily, ["\"", "'"]);
+				var oOptions = this._oElement.children;
+				var bSelected = false;
+				for (var i = 0; i < oOptions.length; i++) {
+					if (oOptions[i].value == sFont) {
+						oOptions[i].selected = true;
+						bSelected = true;
+					} else {
+						oOptions[i].selected = false;
+					}
+				}
+
+				if (!bSelected) {
+					// Select the default entry;
+					this._oElement.children[0].setAttribute("selected", "selected");
+				}
 			}
 		}
 
@@ -193,33 +369,23 @@ SimpleEditor.availableItems = {
 			var sHref = prompt("Link target:");
 			oContentDocument.execCommand("createLink", false, sHref);
 		},
-		icon: "f0c1",
+		element: "f0c1",
 		check: false
 	},
 	unlink: {
 		title: "Unlink current selection",
 		command: function(oEditor) {
-			var oContentDocument = oEditor.getContenDocument();
+			var oRange = oEditor.getCurrentRange();
+			// TODO: Decide what to do with multiple selections
 
-			var oSelection = oContentDocument.getSelection();
-			if (oSelection.rangeCount !== 1) {
-				// TODO: Decide what to do with multiple selections
-				debugger;
-			} else {
-				var oRange = oSelection.getRangeAt(0);
-				if (oRange.collapsed) {
-					var oNewRange = oRange.cloneRange();
-					oNewRange.selectNodeContents(oRange.endContainer);
-					oSelection.removeAllRanges();
-					oSelection.addRange(oNewRange);
-				}
+			if (oRange) {
+				oRange = SelectionTools.selectCollapsed(oRange);
 
 				oContentDocument.execCommand("unlink", false);
+				oContentDocument.body.normalize();
 			}
-
-			oContentDocument.body.normalize();
 		},
-		icon: "f127",
+		element: "f127",
 		check: false
 	},
 	image: {
@@ -230,40 +396,40 @@ SimpleEditor.availableItems = {
 			var sHref = prompt("Image URL:");
 			oContentDocument.execCommand("insertImage", false, sHref);
 		},
-		icon: "f03e",
+		element: "f03e",
 		check: false
 	},
 	indent: {
 		title: "Indent current selection",
 		command: "indent",
-		icon: "f03c",
+		element: "f03c",
 		check: false
 	},
 	outdent: {
 		title: "Outdent current selection",
 		command: "outdent",
-		icon: "f03b",
+		element: "f03b",
 		check: false
 	},
 	undo: {
 		title: "Undo last action",
 		command: "undo",
-		icon: "f0e2",
+		element: "f0e2",
 		check: false
 	},
 	redo: {
 		title: "Redo last action",
 		command: "redo",
-		icon: "f01e",
+		element: "f01e",
 		check: false
 	},
 	unorderedlist: {
 		command: "insertUnorderedList",
-		icon: "f0ca"
+		element: "f0ca"
 	},
 	orderedlist: {
 		command: "insertOrderedList",
-		icon: "f0cb"
+		element: "f0cb"
 	}
 };
 
@@ -272,14 +438,62 @@ if (sap.ui.getCore().getConfiguration().getDebug()) {
 	SimpleEditor.availableItems["debug-rerender"] = {
 		title: "Rerender control (FOR DEBUGGING)",
 		command: "rerender",
-		icon: "f021"
+		element: "f021"
 	};
 }
 
+SimpleEditor.prototype._getContenDocument = function() {
+	if (this._oContent) {
+		return this._oContent.contentDocument;
+	}
+
+	// TODO: Is this really a good idea?
+	// return undefined;
+	return {
+		getSelection: function() {
+			return {
+				rangeCount: 0,
+				getRangeAt: function() {}
+			}
+		},
+
+	};
+};
 
 	///////////////////////////////////////////// Control Lifecycle Methods ////////////////////////////////////////////
 
 SimpleEditor.prototype.init = function() {
+	// "Interface" (as in UI5-Interface concept) that only allow access to a subset of the control's methods
+	this._oEditorInterface = {
+		/**
+		 * Internal API to be used by editor commands to manipulate the editor content when a toolbar element is activated by
+		 * the user. This method should never be called from outside. See Simpleditor.addToolbarElement for details
+		 *
+		 * @protected Only to be used by editor commands added using Simpleditor.addToolbarElement
+		 */
+		getContenDocument: function() {
+			return this._getContenDocument();
+		}.bind(this),
+
+		getSelection: function() {
+			return this._getContenDocument().getSelection();
+		}.bind(this),
+
+		/**
+		 * Returns the first selection range in the document. This will only return the first range in
+		 * multiselect scenarios.
+		 *
+		 * @returns {Range} - The first selected Range in the editor document
+		 * @protected Only to be used by editor commands added using Simpleditor.addToolbarElement
+		 */
+		getCurrentRange: function() {
+			var oSelection = this._getContenDocument().getSelection();
+			if (oSelection.rangeCount > 0) {
+				return this._getContenDocument().getSelection().getRangeAt(0);
+			}
+		}.bind(this)
+	};
+
 	this._contentElements = [];
 	this._selectionChecks = [];
 
@@ -334,9 +548,7 @@ SimpleEditor.prototype.onAfterRendering = function() {
 	////////////////////////////////////////////////// Public Methods //////////////////////////////////////////////////
 
 SimpleEditor.prototype.setValue = function(sValue) {
-	if ( this.getSanitizeValue() ) {
-		jQuery.sap.log.trace("sanitizing HTML content for " + this);
-		// images are using the URL whitelist support
+	if (this.getSanitizeValue()) {
 		sValue = jQuery.sap._sanitizeHTML(sValue);
 	}
 
@@ -369,18 +581,7 @@ SimpleEditor.prototype.execCommand = function(sCommand) {
 	///////////////////////////////////////////////// Protected Methods ////////////////////////////////////////////////
 
 
-/**
- * Internal API to be used by editor commands to manipulate the editor content when a toolbar element is activated by
- * the user. This method should never be called from outside. See Simpleditor.addToolbarElement for details
- *
- * @protected Only to be used by editor commands added using Simpleditor.addToolbarElement
- */
-SimpleEditor.prototype.getContenDocument = function(sCommand) {
-	if (this._oContent) {
-		return this._oContent.contentDocument;
-	}
-	return undefined;
-};
+
 
 	////////////////////////////////////////////////// Private Methods /////////////////////////////////////////////////
 
@@ -438,8 +639,9 @@ SimpleEditor.prototype._getEditorDom = function() {
 
 SimpleEditor.prototype._executeSelectionChecks = function(oEvent) {
 	var oSelection = this._oContent.contentDocument.getSelection();
+	var oEditor = this._oEditorInterface;
 	this._selectionChecks.map(function(mCheck) {
-		if (mCheck.test(oSelection)) {
+		if (mCheck.test(oEditor)) {
 			mCheck.element.classList.add("simpleRteActiveElement");
 		} else {
 			mCheck.element.classList.remove("simpleRteActiveElement");
@@ -459,56 +661,59 @@ SimpleEditor.prototype._createToolbar = function() {
 		if (sItem === "|") {
 			// Separator
 			mItem = {
-				icon: "|"
+				element: "|"
 			};
 		} else {
 			mItem = SimpleEditor.availableItems[sItem];
 		}
 
 
-		var oIcon;
-		if (typeof mItem.icon === "function") {
-			oIcon = mItem.icon(this);
+		var oElement;
+		if (typeof mItem.element === "function") {
+			oElement = mItem.element(this._oEditorInterface, SelectionTools);
 		} else {
-			oIcon = document.createElement("div");
-			oIcon.classList.add("simpleRteIcon");
+			oElement = document.createElement("div");
+			oElement.classList.add("simpleRteIcon");
 
-			if (mItem.icon === "|") {
-				oIcon.classList.add("simpleRteSepatarorIcon");
+			if (mItem.element === "|") {
+				oElement.classList.add("simpleRteSepatarorIcon");
 			} else {
-				oIcon.innerHTML = "&#x" + mItem.icon + ";";
-				oIcon.style.cursor = "pointer";
+				oElement.innerHTML = "&#x" + mItem.element + ";";
+				oElement.style.cursor = "pointer"; // TODO: Move to CSS
 			}
+
+			// Command will only be called when the element is created automatically
+			if (mItem.command) {
+				if (typeof mItem.command === "function") {
+					oElement.addEventListener("click", mItem.command.bind(mItem, this._oEditorInterface, SelectionTools));
+				} else {
+					oElement.addEventListener("click", this.execCommand.bind(this, mItem.command));
+				}
+			}
+
 		}
 
-		if (mItem.command) {
-			if (typeof mItem.command === "function") {
-				oIcon.addEventListener("click", mItem.command.bind(mItem, this));
-			} else {
-				oIcon.addEventListener("click", this.execCommand.bind(this, mItem.command));
-			}
-		}
 
 		if (mItem.title) {
-			oIcon.setAttribute("title", mItem.title);
+			oElement.setAttribute("title", mItem.title);
 		}
 
 		if (mItem.check !== false) {
 			// TODO: Actually check
 			var mCheck = {};
 			if (typeof mItem.check === "function") {
-				mCheck.test = mItem.check;
+				mCheck.test = mItem.check.bind(mItem);
 			} else /* if (typeof mItem.command === "string") */ {
-				mCheck.test = function(mItem, oSelection) {
-					return this.getContenDocument().queryCommandState(mItem.command);
+				mCheck.test = function(mItem, oEditor) {
+					return oEditor.getContenDocument().queryCommandState(mItem.command);
 				}.bind(this, mItem);
 			}
-			mCheck.element = oIcon;
+			mCheck.element = oElement;
 
 			this._selectionChecks.push(mCheck);
 		}
 
-		oToolbar.appendChild(oIcon);
+		oToolbar.appendChild(oElement);
 	}
 
 	return oToolbar;

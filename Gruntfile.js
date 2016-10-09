@@ -66,7 +66,7 @@ module.exports = function (grunt) {
 								if (req.url.indexOf("/resources/sap/ui/custom/rte") === 0) {
 									sPath = req.url.substr(11);
 									// console.log("FROM: " + req.url);
-									req.url = "/sap.ui.custom.rte/" + sPath;
+									req.url = "/sap.ui.custom.rte/src/" + sPath;
 									// console.log("REQ: " + req.url);
 									return next();
 								} else {
