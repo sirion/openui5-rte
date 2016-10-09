@@ -20,6 +20,14 @@ var SelectionTools = {
 			oRange = oNewRange;
 		}
 		return oRange;
+	},
+
+	selectNode: function(oEditor, oNode) {
+		var oSelection = oEditor.getSelection();
+		var oNewRange = oEditor.getCurrentRange().cloneRange();
+		oNewRange.selectNodeContents(oNode);
+		oSelection.removeAllRanges();
+		oSelection.addRange(oNewRange);
 	}
 };
 
@@ -214,8 +222,6 @@ SimpleEditor.availableItems = {
 				// "serif", -> Must be added after filter
 				// "sans-serif", -> Must be added after filter
 				// "monospace", -> Must be added after filter
-				// "cursive",
-				// "fantasy",
 				"Andale Mono",
 				"Arial",
 				"Arial Black",
@@ -263,6 +269,8 @@ SimpleEditor.availableItems = {
 				"serif",
 				"sans-serif",
 				"monospace",
+				// "cursive",
+				// "fantasy",
 				"-"
 			].concat(aFonts);
 
@@ -310,6 +318,11 @@ SimpleEditor.availableItems = {
 
 
 				fnSetFont(oNewNode, e.target.value);
+
+				SelectionTools.selectNode(oEditor, oNewNode);
+
+				oEditor.normalize();
+				oEditor.focus();
 			});
 
 			this._oElement = oSelect;
@@ -334,10 +347,12 @@ SimpleEditor.availableItems = {
 				return sString.substring(i, n + 1);
 			}
 
+			var oBody = oEditor.getContentDocument().body;
+
 			var oRange = oEditor.getCurrentRange();
 			if (oRange && oRange.endContainer) {
 				var oElement = oRange.endContainer;
-				if (oElement.nodeType === Node.TEXT_NODE) {
+				while (oElement != oBody && (!oElement.style || oElement.style.fontFamily == "")) {
 					oElement = oElement.parentElement;
 				}
 
@@ -364,7 +379,7 @@ SimpleEditor.availableItems = {
 	link: {
 		title: "Add link to current selection",
 		command: function(oEditor) {
-			var oContentDocument = oEditor.getContenDocument();
+			var oContentDocument = oEditor.getContentDocument();
 			// TODO: replace prompt with modal dialog
 			var sHref = prompt("Link target:");
 			oContentDocument.execCommand("createLink", false, sHref);
@@ -391,7 +406,7 @@ SimpleEditor.availableItems = {
 	image: {
 		title: "Add an image by URL",
 		command: function(oEditor) {
-			var oContentDocument = oEditor.getContenDocument();
+			var oContentDocument = oEditor.getContentDocument();
 			// TODO: replace prompt with modal dialog
 			var sHref = prompt("Image URL:");
 			oContentDocument.execCommand("insertImage", false, sHref);
@@ -442,7 +457,7 @@ if (sap.ui.getCore().getConfiguration().getDebug()) {
 	};
 }
 
-SimpleEditor.prototype._getContenDocument = function() {
+SimpleEditor.prototype._getContentDocument = function() {
 	if (this._oContent) {
 		return this._oContent.contentDocument;
 	}
@@ -456,7 +471,9 @@ SimpleEditor.prototype._getContenDocument = function() {
 				getRangeAt: function() {}
 			}
 		},
-
+		body: {
+			normalize: function() {}
+		}
 	};
 };
 
@@ -471,12 +488,12 @@ SimpleEditor.prototype.init = function() {
 		 *
 		 * @protected Only to be used by editor commands added using Simpleditor.addToolbarElement
 		 */
-		getContenDocument: function() {
-			return this._getContenDocument();
+		getContentDocument: function() {
+			return this._getContentDocument();
 		}.bind(this),
 
 		getSelection: function() {
-			return this._getContenDocument().getSelection();
+			return this._getContentDocument().getSelection();
 		}.bind(this),
 
 		/**
@@ -487,9 +504,20 @@ SimpleEditor.prototype.init = function() {
 		 * @protected Only to be used by editor commands added using Simpleditor.addToolbarElement
 		 */
 		getCurrentRange: function() {
-			var oSelection = this._getContenDocument().getSelection();
+			var oSelection = this._getContentDocument().getSelection();
 			if (oSelection.rangeCount > 0) {
-				return this._getContenDocument().getSelection().getRangeAt(0);
+				return this._getContentDocument().getSelection().getRangeAt(0);
+			}
+		}.bind(this),
+
+
+		normalize: function() {
+			this._getContentDocument().body.normalize();
+		}.bind(this),
+
+		focus: function() {
+			if (this._oContent) {
+				this._oContent.focus();
 			}
 		}.bind(this)
 	};
@@ -685,12 +713,15 @@ SimpleEditor.prototype._createToolbar = function() {
 			// Command will only be called when the element is created automatically
 			if (mItem.command) {
 				if (typeof mItem.command === "function") {
-					oElement.addEventListener("click", mItem.command.bind(mItem, this._oEditorInterface, SelectionTools));
+					oElement.addEventListener("click", function() {
+						mItem.command(this._oEditorInterface, SelectionTools)
+						this._oContent.contentDocument.body.normalize();
+						this._oContent.focus();
+					}.bind(this));
 				} else {
 					oElement.addEventListener("click", this.execCommand.bind(this, mItem.command));
 				}
 			}
-
 		}
 
 
@@ -705,7 +736,7 @@ SimpleEditor.prototype._createToolbar = function() {
 				mCheck.test = mItem.check.bind(mItem);
 			} else /* if (typeof mItem.command === "string") */ {
 				mCheck.test = function(mItem, oEditor) {
-					return oEditor.getContenDocument().queryCommandState(mItem.command);
+					return oEditor.getContentDocument().queryCommandState(mItem.command);
 				}.bind(this, mItem);
 			}
 			mCheck.element = oElement;

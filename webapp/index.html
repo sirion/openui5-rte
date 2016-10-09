@@ -22,23 +22,70 @@
 </script>
 <script>
 	sap.ui.getCore().attachInit(function() {
+
+
+
 		sap.ui.require(
-			['sap/ui/custom/rte/SimpleEditor', 'sap/ui/layout/Splitter', 'sap/ui/core/HTML', 'sap/ui/model/json/JSONModel'],
-			function(SimpleEditor, Splitter, HTML, JSONModel)
+			['sap/ui/core/Control', 'sap/ui/custom/rte/SimpleEditor', 'sap/ui/layout/Splitter', 'sap/ui/core/HTML', 'sap/ui/model/json/JSONModel'],
+			function(Control, SimpleEditor, Splitter, HTML, JSONModel)
 		{
+
+			Control.extend("RTDisplay", {
+				metadata: {
+					properties: {
+						width:  { type: "sap.ui.core.CSSSize", group: "Dimension", defaultValue: "100%" },
+						height: { type: "sap.ui.core.CSSSize", group: "Dimension", defaultValue: "100%" },
+						sanitizeValue : { type: "boolean", group: "Misc", defaultValue: true },
+						content: { type: "string", group: "Data", defaultValue: "" },
+					}
+				},
+
+				renderer: {
+					render: function(oRm, oControl) {
+						oRm.write('<div');
+						oRm.writeControlData(oControl);
+
+						oRm.addClass("simpleRtd");
+						oRm.writeClasses();
+
+						oRm.addStyle("width", oControl.getWidth());
+						oRm.addStyle("height", oControl.getHeight());
+						oRm.writeStyles();
+
+						if (oControl.getTooltip_AsString()) { // ensure not to render null
+							oRm.writeAttributeEscaped("title", oControl.getTooltip_AsString());
+						}
+						oRm.write('>');
+						oRm.write(oControl.getContent());
+						oRm.write('</div>');
+					}
+				},
+
+				setValue: function(sValue) {
+					if (this.getSanitizeValue()) {
+						sValue = jQuery.sap._sanitizeHTML(sValue);
+					}
+
+					this.setProperty("value", sValue, true);
+					if (this.getDomRef()) {
+						this.getDomRef().innerHTML = sValue;
+					}
+					return this;
+				}
+
+			});
+
 
 			var oModel = new JSONModel({
 				value: "<p>This is a test.</p>"
 			});
-
-
 
 			window.oRTE = new sap.ui.custom.rte.SimpleEditor({
 				width: "98%",
 				height: "99%",
 				value: "{/value}"
 			});
-			var oHtml = new HTML({
+			var oHtml = new RTDisplay({
 				content: "{/value}"
 			});
 
