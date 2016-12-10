@@ -1,4 +1,5 @@
-/* global module, require */
+/* global module, require, process */
+/* eslint-disable no-console */
 
 // var serveStatic = require("serve-static");
 
@@ -82,8 +83,15 @@ module.exports = function (grunt) {
 			}
 		},
 
+		// eslint -o webapp/eslint-report.html -f html .
 		eslint: {
-			three: ['webapp/controls']
+			options : {
+				configFile: ".eslintrc.json",
+				format: "html",
+				outputFile: "webapp/eslint-report.html"
+			},
+			target: ["src", "webapp", "Gruntfile.js"]
+			// rte: ["."]
 		}
 	});
 
@@ -91,6 +99,30 @@ module.exports = function (grunt) {
 	// grunt.loadNpmTasks('grunt-contrib-uglify');
 	grunt.loadNpmTasks('grunt-contrib-connect');
 	grunt.loadNpmTasks('grunt-eslint');
+
+	grunt.registerTask("forceOn", "Forcing next task", function() {
+		grunt.option('force', true);
+	});
+	grunt.registerTask("forceOff", "Forcing next task", function() {
+		grunt.option('force', false);
+	});
+
+	grunt.registerTask("openGruntReport", "Show Grunt report in browser", function() {
+		var open = require("open");
+
+		var sAppName = "google-chrome-stable";
+		if (process.platform == "win32") {
+			sAppName = "Google Chrome";
+		}
+
+		open("webapp/eslint-report.html", sAppName, function(error) {
+			if (error) {
+				console.error("Please open webapp/eslint-report.html");
+			}
+		});
+	});
+
+	grunt.registerTask('lint', [ "forceOn", 'eslint', "forceOff", "openGruntReport" ]);
 
 	// Default task(s).
 	grunt.registerTask('serve', [ 'connect:rte' ]);

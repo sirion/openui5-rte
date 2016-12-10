@@ -5,9 +5,7 @@
 /**
  * Initialization Code and shared classes of library sap.ui.custom.rte
  */
-sap.ui.define(['jquery.sap.global', 'sap/ui/base/DataType',
-	'sap/ui/core/library'], // library dependency
-	function(jQuery, DataType) {
+sap.ui.define(['sap/ui/core/library'], function() {
 
 	"use strict";
 
